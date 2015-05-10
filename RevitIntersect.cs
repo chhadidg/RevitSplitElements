@@ -22,7 +22,6 @@ namespace EditElements
             List<XYZ> points = new List<XYZ>();
             List<Curve> SplitCurves = new List<Curve>();
 
-
             List<double> _elevations = RevitModel.LevelElevation.GetElevations(uidoc);
 
             foreach (ElementId e1 in GlobalVariables.SplitObjects)

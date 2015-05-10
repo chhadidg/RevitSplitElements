@@ -34,13 +34,17 @@ namespace EditElements
                 {
                     Selection selection = active_uidoc.Selection;
                     IList<Reference> picked = selection.PickObjects(ObjectType.Element, commandline);
-                    
-                    foreach (Reference r in picked)
+
+                    if (picked.Count > 0)
                     {
-                        //int eId = Convert.ToInt32();
-                        _elements.Add(r.ElementId);
+                        foreach (Reference r in picked)
+                        {
+                            //int eId = Convert.ToInt32();
+                            _elements.Add(r.ElementId);
+                        }
+                        return _elements;
                     }
-                    return _elements;
+                    return null;
                 }
             }
             catch

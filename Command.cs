@@ -134,7 +134,7 @@ namespace EditElements
                 GlobalVariables.CutObjects = RevitSelection.Get(uiapp, "Select objects to intersect.");
                 GlobalVariables.SplitObjects = GlobalVariables.CutObjects;
 
-                if (GlobalVariables.CutObjects.Count > 0 && GlobalVariables.SplitObjects.Count > 0)
+                if (GlobalVariables.CutObjects != null && GlobalVariables.SplitObjects != null && GlobalVariables.CutObjects.Count > 0 && GlobalVariables.SplitObjects.Count > 0)
                 {
                     Dictionary<ElementId, double> level = RevitModel.LevelElevation.CreateDic(uiapp);
 
