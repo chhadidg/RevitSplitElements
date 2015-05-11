@@ -29,6 +29,21 @@ namespace EditElements.Utils
                 try
                 {
                     location.Curve = newCurve;
+
+                    ElementId b_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(0).Z, _elevations);
+                    ElementId t_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(1).Z, _elevations);
+
+                    Parameter bottomLevelParameter = f.get_Parameter(BuiltInParameter.FAMILY_BASE_LEVEL_PARAM);
+                    if (null != bottomLevelParameter)
+                    {
+                        bottomLevelParameter.Set(b_Id);
+                    }
+
+                    Parameter topLevelParameter = f.get_Parameter(BuiltInParameter.FAMILY_TOP_LEVEL_PARAM);
+                    if (null != topLevelParameter)
+                    {
+                        topLevelParameter.Set(t_Id);
+                    }
                     return Result.Succeeded;
                 }
                 catch (Exception e)
@@ -118,87 +133,6 @@ namespace EditElements.Utils
                 }
             }
         }
-
-        public static int GetType(Document uidoc, Dictionary<ElementId, double> level, ElementId id)
-        {
-            int type = -1;  // 0 - Column
-            // 1 - Beam
-            // 2 - Brace
-            // 3 - Wall
-
-            Options opt = new Options();
-
-            try
-            {
-                Element g1 = uidoc.GetElement(id);
-                GeometryElement geomElem = g1.get_Geometry(opt);
-
-                List<ElementId> selelementsid = new List<ElementId>();
-                selelementsid.Add(g1.Id);
-
-                FilteredElementCollector collector = new FilteredElementCollector(uidoc, selelementsid);
-                ElementClassFilter famInstFilter = new ElementClassFilter(typeof(FamilyInstance));
-                ICollection<Element> elems = collector.WherePasses(famInstFilter).ToElements();
-
-                if (elems.Count > 0)
-                {
-                    foreach (FamilyInstance f in elems)
-                    {
-                        switch (f.StructuralType)
-                        {
-
-                            case StructuralType.Column:
-
-                                type = 0;
-                                break;
-
-                            case StructuralType.Beam:
-
-                                type = 1;
-                                //curve = Beams.Get(uidoc, level, f);
-                                break;
-
-                            case StructuralType.Brace:
-
-                                type = 2;
-                                //MessageBox.Show(f.StructuralType.ToString());
-                                break;
-                        }
-
-                    }
-                }
-                else
-                {
-                    FilteredElementCollector w_collector = new FilteredElementCollector(uidoc, selelementsid);
-                    ICollection<Element> collection = w_collector.OfClass(typeof(Wall)).ToElements();
-
-                    foreach (Element e in collection)
-                    {
-                        Wall wall = e as Wall;
-
-                        if (null != wall)
-                        {
-                            try
-                            {
-                                type = 3;
-                            }
-                            catch
-                            {
-
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.ToString());
-            }
-
-            return type;
-        }
-
-
 
         public static Curve GetCurve(Document uidoc, Dictionary<ElementId, double> level, ElementId id)
         {

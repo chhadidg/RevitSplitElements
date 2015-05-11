@@ -77,6 +77,7 @@ namespace EditElements
                         foreach (ElementId id in newElements)
                         {
 
+                            // Change Curve
                             Transaction trans_element = new Transaction(uidoc, "Transform element.");
                             trans_element.Start();
 
