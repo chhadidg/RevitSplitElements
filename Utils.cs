@@ -16,6 +16,7 @@ namespace EditElements.Utils
         static ICollection<ElementId> i_SplitObjects;
         static ICollection<ElementId> i_CutObjects;
         static int _MessageVerticalColumn = 0;
+        static bool _RememberColumns = true;
 
         public static ICollection<ElementId> SplitObjects
         {
@@ -31,6 +32,11 @@ namespace EditElements.Utils
         {
             get { return _MessageVerticalColumn; }
             set { _MessageVerticalColumn = value; }
+        }
+        public static bool RememberColumns
+        {
+            get { return _RememberColumns; }
+            set { _RememberColumns = value; }
         }
     }
 

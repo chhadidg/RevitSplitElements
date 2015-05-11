@@ -121,10 +121,14 @@ namespace EditElements.Utils
                         }
                     }
                     else
-                    {
+                    {                        
                         return Result.Failed;
                     }
 
+                    if (!GlobalVariables.RememberColumns)
+                    {
+                        GlobalVariables.MessageVerticalColumn = 0;
+                    }
                     return Result.Succeeded;
                 }
                 else

@@ -15,7 +15,16 @@ namespace EditElements
     {
         public ColumnForm()
         {
-            InitializeComponent();
+            InitializeComponent(); 
+            
+            if (GlobalVariables.RememberColumns)
+            {
+                checkBox_RememberColumns.Checked = true;
+            }
+            else
+            {
+                checkBox_RememberColumns.Checked = false;
+            }
         }
 
         private void button_Vertical_Click(object sender, EventArgs e)
@@ -28,6 +37,18 @@ namespace EditElements
         {
             this.Close();
             GlobalVariables.MessageVerticalColumn = 2;
+        }
+
+        private void checkBox_RememberColumns_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox_RememberColumns.Checked)
+            {
+                GlobalVariables.RememberColumns = true;
+            }
+            else
+            {
+                GlobalVariables.RememberColumns = false;
+            }
         }
     }
 }
