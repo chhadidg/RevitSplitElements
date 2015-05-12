@@ -9,8 +9,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 
-#define COOOL 777
-
 namespace EditElements.Utils
 {
     public class GlobalVariables
