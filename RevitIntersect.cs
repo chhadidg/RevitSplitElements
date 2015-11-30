@@ -59,48 +59,73 @@ namespace EditElements
 
                 for (int i = 0;i<newCurves.Count;i++)
                 {
-
                     if (i != 0)     // First Element different - just change endpoint
                                     // All other make copy first
                     {
-                        Transaction move_element = new Transaction(uidoc, "Copy element.");
-                        move_element.Start();
-
-                        XYZ trans = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);
-                        newElements = Elements.Transform(uidoc, e1, trans);
-
-                        if (TransactionStatus.Committed != move_element.Commit())
+                        using (Transaction move_element = new Transaction(uidoc, "Copy element."))
                         {
-                            move_element.RollBack();
-                        }
+                            try
+                            {
+                                move_element.Start();
+
+                                XYZ trans = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);
+                                newElements = Elements.Transform(uidoc, e1, trans);
+
+                                if (TransactionStatus.Committed != move_element.Commit())
+                                {
+                                    move_element.RollBack();
+                                }
+                            }
+                            catch
+                            {
+                                move_element.RollBack();
+                            }
+                        }                           
 
                         foreach (ElementId id in newElements)
                         {
-
                             // Change Curve
-                            Transaction trans_element = new Transaction(uidoc, "Transform element.");
-                            trans_element.Start();
-
-                            FamilyInstance newf = Elements.GetFamilyInstance(uidoc, level, id);
-                            Elements.ChangeEndPoint(uidoc, newCurves[i], newf, level, _elevations);
-
-                            if (TransactionStatus.Committed != trans_element.Commit())
+                            using (Transaction trans_element = new Transaction(uidoc, "Transform element."))
                             {
-                                trans_element.RollBack();
-                            }
+                                try
+                                {
+                                    trans_element.Start();
+
+                                    FamilyInstance newf = Elements.GetFamilyInstance(uidoc, level, id);
+                                    Elements.ChangeEndPoint(uidoc, newCurves[i], newf, level, _elevations);
+
+                                    if (TransactionStatus.Committed != trans_element.Commit())
+                                    {
+                                        trans_element.RollBack();
+                                    }
+                                }
+                                catch
+                                {
+                                    trans_element.RollBack();
+                                }
+                            }                                
                         }    
                     }
                     else
                     {
-                        Transaction trans_element = new Transaction(uidoc, "Transform element.");
-                        trans_element.Start();
-
-                        Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
-
-                        if (TransactionStatus.Committed != trans_element.Commit())
+                        using (Transaction trans_element = new Transaction(uidoc, "Transform element."))
                         {
-                            trans_element.RollBack();
-                        }
+                            try
+                            {
+                                trans_element.Start();
+
+                                Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
+
+                                if (TransactionStatus.Committed != trans_element.Commit())
+                                {
+                                    trans_element.RollBack();
+                                }
+                            }
+                            catch
+                            {
+                                trans_element.RollBack();
+                            }
+                        }                            
                     }
                 }
             }
