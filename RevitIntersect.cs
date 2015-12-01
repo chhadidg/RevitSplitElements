@@ -68,7 +68,7 @@ namespace EditElements
                             {
                                 move_element.Start();
 
-                                XYZ trans = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);
+                                XYZ trans = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);                                
                                 newElements = Elements.Transform(uidoc, e1, trans);
 
                                 if (TransactionStatus.Committed != move_element.Commit())
@@ -76,8 +76,9 @@ namespace EditElements
                                     move_element.RollBack();
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                MessageBox.Show(ex.ToString());
                                 move_element.RollBack();
                             }
                         }                           
@@ -114,8 +115,20 @@ namespace EditElements
                             {
                                 trans_element.Start();
 
+                                foreach (ElementId eId in JoinGeometryUtils.GetJoinedElements(uidoc, f))
+                                {
+                                    JoinGeometryUtils.UnjoinGeometry(uidoc, uidoc.GetElement(eId), uidoc.GetElement(e1));
+                                }
                                 Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
+                                /*
 
+                                LocationCurve locationCurve = f.Location as LocationCurve;
+
+                                if (locationCurve != null)
+                                {
+                                    locationCurve.Curve = newCurves[i];
+                                }
+                                */
                                 if (TransactionStatus.Committed != trans_element.Commit())
                                 {
                                     trans_element.RollBack();
