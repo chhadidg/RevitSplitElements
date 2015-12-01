@@ -62,24 +62,24 @@ namespace EditElements
                     if (i != 0)     // First Element different - just change endpoint
                                     // All other make copy first
                     {
-                        using (Transaction move_element = new Transaction(uidoc, "Copy element."))
+                        using (Transaction trans = new Transaction(uidoc, "Copy element."))
                         {
                             try
                             {
-                                move_element.Start();
+                                trans.Start();
 
-                                XYZ trans = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);                                
-                                newElements = Elements.Transform(uidoc, e1, trans);
+                                XYZ transform = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);                                
+                                newElements = Elements.Transform(uidoc, e1, transform);
 
-                                if (TransactionStatus.Committed != move_element.Commit())
+                                if (TransactionStatus.Committed != trans.Commit())
                                 {
-                                    move_element.RollBack();
+                                    trans.RollBack();
                                 }
                             }
                             catch (Exception ex)
                             {
                                 MessageBox.Show(ex.ToString());
-                                move_element.RollBack();
+                                trans.RollBack();
                             }
                         }                           
 
@@ -109,34 +109,38 @@ namespace EditElements
                     }
                     else
                     {
-                        using (Transaction trans_element = new Transaction(uidoc, "Transform element."))
+                        using (Transaction trans = new Transaction(uidoc, "Transform element."))
                         {
                             try
                             {
-                                trans_element.Start();
+                                trans.Start();
 
                                 foreach (ElementId eId in JoinGeometryUtils.GetJoinedElements(uidoc, f))
                                 {
                                     JoinGeometryUtils.UnjoinGeometry(uidoc, uidoc.GetElement(eId), uidoc.GetElement(e1));
                                 }
+                            }
+                            catch
+                            {
+                                trans.RollBack();
+                            }
+                        }
+                        using (Transaction trans = new Transaction(uidoc, "Transform element."))
+                        {
+                            try
+                            {
+                                trans.Start();
+
                                 Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
-                                /*
-
-                                LocationCurve locationCurve = f.Location as LocationCurve;
-
-                                if (locationCurve != null)
+                               
+                                if (TransactionStatus.Committed != trans.Commit())
                                 {
-                                    locationCurve.Curve = newCurves[i];
-                                }
-                                */
-                                if (TransactionStatus.Committed != trans_element.Commit())
-                                {
-                                    trans_element.RollBack();
+                                    trans.RollBack();
                                 }
                             }
                             catch
                             {
-                                trans_element.RollBack();
+                                trans.RollBack();
                             }
                         }                            
                     }
