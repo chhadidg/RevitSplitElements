@@ -16,14 +16,14 @@ namespace EditElements
     {
         public static ICollection<ElementId> Get(UIApplication uiapp, string commandline)
         {
-            UIDocument active_uidoc = uiapp.ActiveUIDocument;
-            Document uidoc = active_uidoc.Document;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
 
             ICollection<ElementId> _elements;
 
             try
             {
-                _elements = active_uidoc.Selection.GetElementIds();
+                _elements = uidoc.Selection.GetElementIds();
 
                 if (_elements.Count > 0)
                 {
@@ -32,7 +32,7 @@ namespace EditElements
                 }
                 else
                 {
-                    Selection selection = active_uidoc.Selection;
+                    Selection selection = uidoc.Selection;
                     IList<Reference> picked = selection.PickObjects(ObjectType.Element, commandline);
 
                     if (picked.Count > 0)

@@ -9,7 +9,7 @@ namespace EditElements.RevitModel
 {
     public class Walls
     {
-        public static Curve Get(Document uidoc, Dictionary<ElementId, double> level, Wall w)
+        public static Curve Get(Document doc, Dictionary<ElementId, double> level, Wall w)
         {
             LocationCurve locationCurve = w.Location as LocationCurve;
 

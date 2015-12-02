@@ -14,13 +14,13 @@ namespace EditElements.Utils
 {
     public class Elements
     {
-        public static ICollection<ElementId> Transform(Document uidoc, ElementId id, XYZ trans)
+        public static ICollection<ElementId> Transform(Document doc, ElementId id, XYZ trans)
         {
-            ICollection<ElementId> newElements = ElementTransformUtils.CopyElement(uidoc, id, trans);
+            ICollection<ElementId> newElements = ElementTransformUtils.CopyElement(doc, id, trans);
             return newElements;
         }
 
-        public static Result ChangeEndPoint(Document uidoc, Curve newCurve, FamilyInstance f, Dictionary<ElementId, double> level, List<double> _elevations)
+        public static Result ChangeEndPoint(Document doc, Curve newCurve, FamilyInstance f, Dictionary<ElementId, double> level, List<double> _elevations)
         {
             LocationCurve location = f.Location as LocationCurve;
 
@@ -30,8 +30,8 @@ namespace EditElements.Utils
                 {
                     location.Curve = newCurve;
 
-                    ElementId b_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(0).Z, _elevations);
-                    ElementId t_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(1).Z, _elevations);
+                    ElementId b_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(0).Z, _elevations);
+                    ElementId t_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(1).Z, _elevations);
 
                     Parameter bottomLevelParameter = f.get_Parameter(BuiltInParameter.FAMILY_BASE_LEVEL_PARAM);
                     if (null != bottomLevelParameter)
@@ -66,8 +66,8 @@ namespace EditElements.Utils
 
                     if (GlobalVariables.MessageVerticalColumn == 1)
                     {
-                        ElementId b_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(0).Z, _elevations);
-                        ElementId t_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(1).Z, _elevations);
+                        ElementId b_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(0).Z, _elevations);
+                        ElementId t_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(1).Z, _elevations);
                         locationPoint.Point = newCurve.GetEndPoint(0);
 
                         Parameter topLevelParameter = f.get_Parameter(BuiltInParameter.FAMILY_TOP_LEVEL_PARAM);
@@ -97,8 +97,8 @@ namespace EditElements.Utils
                             {
                                 location.Curve = newCurve;
 
-                                ElementId b_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(0).Z, _elevations);
-                                ElementId t_Id = RevitLevelId.SearchForClosestLevel(uidoc, level, newCurve.GetEndPoint(1).Z, _elevations);
+                                ElementId b_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(0).Z, _elevations);
+                                ElementId t_Id = RevitLevelId.SearchForClosestLevel(doc, level, newCurve.GetEndPoint(1).Z, _elevations);
                                 
                                 Parameter bottomLevelParameter = f.get_Parameter(BuiltInParameter.FAMILY_BASE_LEVEL_PARAM);
                                 if (null != bottomLevelParameter)
@@ -138,7 +138,7 @@ namespace EditElements.Utils
             }
         }
 
-        public static Curve GetCurve(Document uidoc, Dictionary<ElementId, double> level, ElementId id)
+        public static Curve GetCurve(Document doc, Dictionary<ElementId, double> level, ElementId id)
         {
             Curve curve = null;
 
@@ -146,13 +146,13 @@ namespace EditElements.Utils
 
             try
             {
-                Element g1 = uidoc.GetElement(id);
+                Element g1 = doc.GetElement(id);
                 GeometryElement geomElem = g1.get_Geometry(opt);
 
                 List<ElementId> selelementsid = new List<ElementId>();
                 selelementsid.Add(g1.Id);
 
-                FilteredElementCollector collector = new FilteredElementCollector(uidoc, selelementsid);
+                FilteredElementCollector collector = new FilteredElementCollector(doc, selelementsid);
                 ElementClassFilter famInstFilter = new ElementClassFilter(typeof(FamilyInstance));
                 ICollection<Element> elems = collector.WherePasses(famInstFilter).ToElements();
 
@@ -165,17 +165,17 @@ namespace EditElements.Utils
 
                             case StructuralType.Column:
 
-                                curve = RevitModel.Columns.Get(uidoc, level, f);
+                                curve = RevitModel.Columns.Get(doc, level, f);
                                 break;
 
                             case StructuralType.Beam:
 
-                                curve = RevitModel.Beams.Get(uidoc, level, f);
+                                curve = RevitModel.Beams.Get(doc, level, f);
                                 break;
 
                             case StructuralType.Brace:
 
-                                curve = RevitModel.Braces.Get(uidoc, level, f);
+                                curve = RevitModel.Braces.Get(doc, level, f);
                                 break;
                         }
 
@@ -183,7 +183,7 @@ namespace EditElements.Utils
                 }
                 else
                 {
-                    FilteredElementCollector w_collector = new FilteredElementCollector(uidoc, selelementsid);
+                    FilteredElementCollector w_collector = new FilteredElementCollector(doc, selelementsid);
                     ICollection<Element> collection = w_collector.OfClass(typeof(Wall)).ToElements();
 
                     foreach (Element e in collection)
@@ -194,7 +194,7 @@ namespace EditElements.Utils
                         {
                             try
                             {
-                                curve = RevitModel.Walls.Get(uidoc, level, wall);
+                                curve = RevitModel.Walls.Get(doc, level, wall);
                             }
                             catch
                             {
@@ -214,19 +214,19 @@ namespace EditElements.Utils
 
 
 
-        public static FamilyInstance GetFamilyInstance(Document uidoc, Dictionary<ElementId, double> level, ElementId id)
+        public static FamilyInstance GetFamilyInstance(Document doc, Dictionary<ElementId, double> level, ElementId id)
         {
             Options opt = new Options();
 
             try
             {
-                Element g1 = uidoc.GetElement(id);
+                Element g1 = doc.GetElement(id);
                 GeometryElement geomElem = g1.get_Geometry(opt);
 
                 List<ElementId> selelementsid = new List<ElementId>();
                 selelementsid.Add(g1.Id);
 
-                FilteredElementCollector collector = new FilteredElementCollector(uidoc, selelementsid);
+                FilteredElementCollector collector = new FilteredElementCollector(doc, selelementsid);
                 ElementClassFilter famInstFilter = new ElementClassFilter(typeof(FamilyInstance));
                 ICollection<Element> elems = collector.WherePasses(famInstFilter).ToElements();
 

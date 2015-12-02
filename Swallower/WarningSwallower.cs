@@ -9,15 +9,36 @@ namespace EditElements.Swallower
 {
     public class WarningSwallower : IFailuresPreprocessor
     {
-        public FailureProcessingResult PreprocessFailures(FailuresAccessor a)
+        public FailureProcessingResult PreprocessFailures(FailuresAccessor failuresAccessor)
         {
             // inside event handler, get all warnings
 
-            IList<FailureMessageAccessor> failures = a.GetFailureMessages();
+            IList<FailureMessageAccessor> fmas = failuresAccessor.GetFailureMessages();
 
-            foreach (FailureMessageAccessor f in failures)
+            if (fmas.Count == 0)
+            { return FailureProcessingResult.Continue; }
+
+            foreach (FailureMessageAccessor fma in fmas)
             {
-                switch (f.GetDescriptionText())
+                FailureSeverity s = fma.GetSeverity();
+                if (s == FailureSeverity.Warning)
+                {
+                    failuresAccessor.DeleteWarning(fma);
+                }
+                else if (s == FailureSeverity.Error)
+                {
+                    //FailureDefinitionId id = fma.GetFailureDefinitionId();
+
+                    //if (id == BuiltInFailures.JoinElementsFailures.)
+                    //{
+                    // only default option being choosen, 
+                    // not good enough!
+                    //failuresAccessor.ResolveFailure(fma);
+                    //}
+                    //return FailureProcessingResult.ProceedWithRollBack;
+                }
+                /*
+                switch (s)
                 {
                     // Slightly off axis error gets ignored
                     case "Element is slightly off axis and may cause inaccuracies.":
@@ -33,6 +54,7 @@ namespace EditElements.Swallower
                         break;
                 }
                 a.DeleteWarning(f);
+                */
             }
             return FailureProcessingResult.Continue;
         }

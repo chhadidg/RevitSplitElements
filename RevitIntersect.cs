@@ -1,5 +1,6 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using EditElements.Swallower;
 using EditElements.Utils;
 using System;
 using System.Collections.Generic;
@@ -11,17 +12,17 @@ namespace EditElements
     {
         public static Result Do(UIApplication uiapp, Dictionary<ElementId, double> level)
         {
-            UIDocument active_uidoc = uiapp.ActiveUIDocument;
-            Document uidoc = active_uidoc.Document;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
             
             List<XYZ> points = new List<XYZ>();
             List<Curve> SplitCurves = new List<Curve>();
 
-            List<double> _elevations = RevitModel.LevelElevation.GetElevations(uidoc);
+            List<double> _elevations = RevitModel.LevelElevation.GetElevations(doc);
 
             foreach (ElementId e1 in GlobalVariables.SplitObjects)
             {
-                Curve c1 = Elements.GetCurve(uidoc, level, e1);
+                Curve c1 = Elements.GetCurve(doc, level, e1);
 
                 if (null != c1)
                 {
@@ -29,7 +30,7 @@ namespace EditElements
 
                     foreach (ElementId e2 in GlobalVariables.CutObjects)
                     {
-                        Curve c2 = Elements.GetCurve(uidoc, level, e2);
+                        Curve c2 = Elements.GetCurve(doc, level, e2);
 
                         if (null != c2)
                         {
@@ -44,126 +45,155 @@ namespace EditElements
                 }
             }
 
-            //TransactionGroup transgroup = new TransactionGroup(uidoc, "Intersect Geometry");
-            //transgroup.Start();
-            foreach (ElementId e1 in GlobalVariables.SplitObjects)
+            using (TransactionGroup transgroup = new TransactionGroup(doc, "Intersect Geometry"))
             {
-                Curve c = Elements.GetCurve(uidoc, level, e1);
-                FamilyInstance f = Elements.GetFamilyInstance(uidoc, level, e1);
-                List<Curve> newCurves = ElementSplitter.Do(c, points);
-
-                ICollection<ElementId> newElements = null;
-
-                for (int i = 0;i<newCurves.Count;i++)
+                try
                 {
-                    if (i != 0)     // First Element different - just change endpoint
-                                    // All other make copy first
+                    if (transgroup.Start() != TransactionStatus.Started) return Result.Failed;
+
+                    foreach (ElementId e1 in GlobalVariables.SplitObjects)
                     {
-                        using (Transaction trans = new Transaction(uidoc, "Copy element."))
+                        Curve c = Elements.GetCurve(doc, level, e1);
+                        FamilyInstance f = Elements.GetFamilyInstance(doc, level, e1);
+                        List<Curve> newCurves = ElementSplitter.Do(c, points);
+
+                        ICollection<ElementId> newElements = null;
+
+                        for (int i = 0; i < newCurves.Count; i++)
                         {
-                            try
+                            if (i != 0)     // First Element different - just change endpoint
+                                            // All other make copy first
                             {
-                                if (trans.Start() != TransactionStatus.Started) return Result.Failed;
-
-                                XYZ transform = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);                                
-                                newElements = Elements.Transform(uidoc, e1, transform);
-
-                                if (TransactionStatus.Committed != trans.Commit())
+                                using (Transaction trans = new Transaction(doc, "Copy element."))
                                 {
-                                    trans.RollBack();
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show(ex.ToString());
-                                trans.RollBack();
-                            }
-                        }                           
-
-                        foreach (ElementId id in newElements)
-                        {
-                            // Change Curve
-                            using (Transaction trans_element = new Transaction(uidoc, "Transform element."))
-                            {
-                                try
-                                {
-                                    trans_element.Start();
-
-                                    FamilyInstance newf = Elements.GetFamilyInstance(uidoc, level, id);
-                                    Elements.ChangeEndPoint(uidoc, newCurves[i], newf, level, _elevations);
-
-                                    if (TransactionStatus.Committed != trans_element.Commit())
+                                    try
                                     {
-                                        trans_element.RollBack();
+                                        if (trans.Start() != TransactionStatus.Started) return Result.Failed;
+
+                                        XYZ transform = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);
+                                        newElements = Elements.Transform(doc, e1, transform);
+
+                                        if (TransactionStatus.Committed != trans.Commit())
+                                        {
+                                            trans.RollBack();
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        MessageBox.Show(ex.ToString());
+                                        trans.RollBack();
                                     }
                                 }
-                                catch
+
+                                foreach (ElementId id in newElements)
                                 {
-                                    trans_element.RollBack();
+                                    // Change Curve
+                                    using (Transaction trans = new Transaction(doc, "Transform element."))
+                                    {
+                                        try
+                                        {
+                                            if (trans.Start() != TransactionStatus.Started) return Result.Failed;
+
+                                            FamilyInstance newf = Elements.GetFamilyInstance(doc, level, id);
+                                            Elements.ChangeEndPoint(doc, newCurves[i], newf, level, _elevations);
+
+                                            FailureHandlingOptions options = trans.GetFailureHandlingOptions();
+                                            options.SetFailuresPreprocessor(new WarningSwallower());
+
+                                            if (TransactionStatus.Committed != trans.Commit(options))
+                                            {
+                                                trans.RollBack();
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            trans.RollBack();
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                using (Transaction trans = new Transaction(doc, "Transform element."))
+                                {
+                                    try
+                                    {
+                                        if (trans.Start() != TransactionStatus.Started) return Result.Failed;
+
+                                        foreach (ElementId eId in JoinGeometryUtils.GetJoinedElements(doc, f))
+                                        {
+                                            JoinGeometryUtils.UnjoinGeometry(doc, doc.GetElement(e1), doc.GetElement(eId));
+                                        }
+
+                                        FailureHandlingOptions options = trans.GetFailureHandlingOptions();
+                                        options.SetFailuresPreprocessor(new WarningSwallower());
+
+                                        if (TransactionStatus.Committed != trans.Commit(options))
+                                        {
+                                            trans.RollBack();
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        trans.RollBack();
+                                    }
+                                }
+                                using (Transaction trans = new Transaction(doc, "Transform element."))
+                                {
+                                    try
+                                    {
+                                        if (trans.Start() != TransactionStatus.Started) return Result.Failed;
+
+                                        LocationCurve orig_location = f.Location as LocationCurve;
+                                        double orig_len = orig_location.Curve.Length;
+
+                                        double up_len = newCurves[i].Length;
+
+                                        Elements.ChangeEndPoint(doc, newCurves[i], f, level, _elevations);
+
+                                        LocationCurve after_location = f.Location as LocationCurve;
+                                        double after_len = after_location.Curve.Length;
+                                        doc.Regenerate();
+
+                                        LocationCurve regen_location = f.Location as LocationCurve;
+                                        double regen_len = regen_location.Curve.Length;
+
+                                        uidoc.RefreshActiveView();
+
+                                        FailureHandlingOptions options = trans.GetFailureHandlingOptions();
+                                        options.SetFailuresPreprocessor(new WarningSwallower());
+                                        options.SetClearAfterRollback(true);
+
+                                        if (TransactionStatus.Committed != trans.Commit(options))
+                                        {
+                                            trans.RollBack();
+                                            return Result.Failed;
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        trans.RollBack();
+                                        return Result.Failed;
+                                    }
                                 }
                             }
                         }
+                    }
+                    if (transgroup.Assimilate() == TransactionStatus.Committed)
+                    {
+                        return Result.Succeeded;
                     }
                     else
                     {
-                        using (Transaction trans = new Transaction(uidoc, "Transform element."))
-                        {
-                            try
-                            {
-                                trans.Start();
-
-                                foreach (ElementId eId in JoinGeometryUtils.GetJoinedElements(uidoc, f))
-                                {
-                                    JoinGeometryUtils.UnjoinGeometry(uidoc, uidoc.GetElement(eId), uidoc.GetElement(e1));
-                                }
-                                if (TransactionStatus.Committed != trans.Commit())
-                                {
-                                    trans.RollBack();
-                                }
-                            }
-                            catch
-                            {
-                                trans.RollBack();
-                            }
-                        }
-                        using (Transaction trans = new Transaction(uidoc, "Transform element."))
-                        {
-                            try
-                            {
-                                trans.Start();
-
-                                LocationCurve orig_location = f.Location as LocationCurve;
-                                double orig_len = orig_location.Curve.Length;
-
-                                double up_len = newCurves[i].Length;
-
-                                Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
-
-
-                                LocationCurve after_location = f.Location as LocationCurve;
-                                double after_len = after_location.Curve.Length;
-                                uidoc.Regenerate();
-
-                                LocationCurve regen_location = f.Location as LocationCurve;
-                                double regen_len = regen_location.Curve.Length;
-
-                                active_uidoc.RefreshActiveView();
-
-                                if (TransactionStatus.Committed != trans.Commit())
-                                {
-                                    trans.RollBack();
-                                }
-                            }
-                            catch
-                            {
-                                trans.RollBack();
-                            }
-                        }                            
+                        return Result.Failed;
                     }
                 }
-            }
-
-            return Result.Succeeded;
+                catch
+                {
+                    transgroup.RollBack();
+                    return Result.Failed;
+                }
+            }            
         }
 
 

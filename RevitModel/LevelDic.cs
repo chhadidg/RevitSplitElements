@@ -12,9 +12,9 @@ namespace EditElements.RevitModel
     {
         public static Dictionary<ElementId, double> CreateDic(UIApplication uiapp)
         {
-            UIDocument active_uidoc = uiapp.ActiveUIDocument;
-            Document uidoc = active_uidoc.Document;
-            FilteredElementCollector level_collector = new FilteredElementCollector(uidoc);
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            FilteredElementCollector level_collector = new FilteredElementCollector(doc);
             ICollection<Element> collection = level_collector.OfClass(typeof(Level)).ToElements();
 
             Dictionary<ElementId, double> LevelList = new Dictionary<ElementId, double>();
@@ -28,9 +28,9 @@ namespace EditElements.RevitModel
             return LevelList;
         }
 
-        public static List<double> GetElevations(Document uidoc)
+        public static List<double> GetElevations(Document doc)
         {
-            FilteredElementCollector level_collector = new FilteredElementCollector(uidoc);
+            FilteredElementCollector level_collector = new FilteredElementCollector(doc);
             ICollection<Element> collection = level_collector.OfClass(typeof(Level)).ToElements();
 
             List<double> LevelList = new List<double>();

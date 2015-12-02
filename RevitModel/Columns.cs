@@ -11,7 +11,7 @@ namespace EditElements.RevitModel
 {
     public class Columns
     {
-        public static Curve Get(Document uidoc, Dictionary<ElementId, double> level, FamilyInstance c)
+        public static Curve Get(Document doc, Dictionary<ElementId, double> level, FamilyInstance c)
         {
             XYZ endPoint0 = null;
             XYZ endPoint1 = null;
