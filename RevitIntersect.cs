@@ -1,13 +1,8 @@
 ﻿using Autodesk.Revit.DB;
-using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
-using EditElements.RevitModel;
 using EditElements.Utils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace EditElements
@@ -18,7 +13,7 @@ namespace EditElements
         {
             UIDocument active_uidoc = uiapp.ActiveUIDocument;
             Document uidoc = active_uidoc.Document;
-
+            
             List<XYZ> points = new List<XYZ>();
             List<Curve> SplitCurves = new List<Curve>();
 
@@ -48,7 +43,9 @@ namespace EditElements
                     }
                 }
             }
-            
+
+            //TransactionGroup transgroup = new TransactionGroup(uidoc, "Intersect Geometry");
+            //transgroup.Start();
             foreach (ElementId e1 in GlobalVariables.SplitObjects)
             {
                 Curve c = Elements.GetCurve(uidoc, level, e1);
@@ -66,7 +63,7 @@ namespace EditElements
                         {
                             try
                             {
-                                trans.Start();
+                                if (trans.Start() != TransactionStatus.Started) return Result.Failed;
 
                                 XYZ transform = newCurves[i].GetEndPoint(0) - c.GetEndPoint(0);                                
                                 newElements = Elements.Transform(uidoc, e1, transform);
@@ -104,8 +101,8 @@ namespace EditElements
                                 {
                                     trans_element.RollBack();
                                 }
-                            }                                
-                        }    
+                            }
+                        }
                     }
                     else
                     {
@@ -119,6 +116,10 @@ namespace EditElements
                                 {
                                     JoinGeometryUtils.UnjoinGeometry(uidoc, uidoc.GetElement(eId), uidoc.GetElement(e1));
                                 }
+                                if (TransactionStatus.Committed != trans.Commit())
+                                {
+                                    trans.RollBack();
+                                }
                             }
                             catch
                             {
@@ -131,8 +132,23 @@ namespace EditElements
                             {
                                 trans.Start();
 
+                                LocationCurve orig_location = f.Location as LocationCurve;
+                                double orig_len = orig_location.Curve.Length;
+
+                                double up_len = newCurves[i].Length;
+
                                 Elements.ChangeEndPoint(uidoc, newCurves[i], f, level, _elevations);
-                               
+
+
+                                LocationCurve after_location = f.Location as LocationCurve;
+                                double after_len = after_location.Curve.Length;
+                                uidoc.Regenerate();
+
+                                LocationCurve regen_location = f.Location as LocationCurve;
+                                double regen_len = regen_location.Curve.Length;
+
+                                active_uidoc.RefreshActiveView();
+
                                 if (TransactionStatus.Committed != trans.Commit())
                                 {
                                     trans.RollBack();
